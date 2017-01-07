@@ -1,0 +1,110 @@
+#!/usr/bin/php
+<?php
+if (count($argv) < 6 || count($argv) > 6) {
+	echo help();
+} else {
+	$count = 1;
+	$date = date('His_dny');
+	
+	//read de file with the text
+	$file = fopen($argv[4],"r");
+	while(!feof($file)) {
+		
+		$text = fgets($file);
+
+    if ($text == "\n")
+    continue;
+
+    if ($text[0] == ';')
+    continue;
+
+    $pos = strpos($text, ':');
+    if ($pos)
+    {
+      $destination = substr($text, 0, $pos);
+
+      $file_parts = pathinfo($destination);
+
+      if (isset($file_parts['dirname']) && $file_parts['dirname'] != "")
+      if (!file_exists($file_parts['dirname']))
+      mkdir($file_parts['dirname']);
+
+      if (!isset($file_parts['extension']) && $file_parts['extension'] != "wav")
+      $destination = $destination . ".wav";
+
+      $text = substr($text, $pos+1);
+    }
+    else
+    $destination = false;
+		
+		$text = rtrim($text);
+		echo "\nGetting the sound file for: $text\n";
+		
+		//set the POST variables
+		$url = $argv[1];
+		$post = array(
+				'text' => $text,
+				'language' => $argv[2],
+				'voice' => $argv[3]
+		);
+		
+		//url-ify the data for the POST
+		$post_string = "";
+		foreach($post as $key=>$value) { $post_string .= $key.'='.$value.'&'; }
+		rtrim($post_string,'&');
+		
+		//open connection
+		$ch = curl_init();
+		
+		//set the url, number of POST vars, POST data
+		curl_setopt($ch, CURLOPT_URL, $url);
+		curl_setopt($ch, CURLOPT_POST, count($post));
+		curl_setopt($ch, CURLOPT_POSTFIELDS, $post_string);
+		curl_setopt($ch, CURLOPT_BINARYTRANSFER, 1);
+		curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+		
+		//execute post
+		$result = curl_exec($ch);
+		
+		//close connection
+		curl_close($ch);
+		
+		//write the file
+    if (!$destination)
+		$destination = $argv[5]."/sound_line_".$count++."_".$date.".wav";
+		$soundfile = fopen($destination,"wb");
+		fwrite($soundfile,$result);
+		
+		echo "                  Saved in: $destination\n";
+		
+	}	
+	echo "\n";
+	
+}
+
+
+
+function help() {
+	
+  $msg = "\n";
+  $msg = $msg."Texts2wav, Copyright (C) 2017, Ulex Innovative Systems.";
+	$msg = $msg."\n";
+	$msg = $msg."This tool converts texts to audio files.\n";
+	$msg = $msg."License GPL V3.\n";
+	$msg = $msg."\n";
+
+	$msg = $msg."Usage: texts2wav\n";
+	$msg = $msg."\targ1 - url of the tts generator\n";
+	$msg = $msg."\targ2 - language (en es fr ...)\n";
+	$msg = $msg."\targ3 - voice of the tts server\n";
+	$msg = $msg."\targ4 - path to the file containing the text to convert. ONE MESSAGE PER LINE\n";
+	$msg = $msg."\targ5 - path to the folder where the sounds will be stored\n";
+	$msg = $msg."\n";
+	$msg = $msg."Example: ./text2wav http://ttsf.voximal.net/tts/pico/tts.php en-US ? exemple.txt /tmp/audios\n";
+	$msg = $msg."\n";
+	$msg = $msg."File format: multiple lines with: \"filename: Text to prompt.(CRLF)\" [support ';' comments]\n";
+
+	return $msg;
+	
+}
+?>
