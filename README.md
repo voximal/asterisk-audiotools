@@ -1,2 +1,2 @@
 # asterisk-audiotools
-Asterisk tools to generate the Sounds files.
+Asterisk/Voximal tool to generate the audio files from TextToSpeech engines.
